@@ -190,7 +190,7 @@ export default function App() {
               className="text-base font-extrabold text-[#1d4ed8]"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              AfyaVentures
+              Nurture
             </span>
           </button>
 
@@ -259,12 +259,12 @@ export default function App() {
         
         <div className="max-w-4xl mx-auto text-center relative z-10">
           {/* Eyebrow badge */}
-          <span
+          {/* <span
             className="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8 border"
             style={{ color: "#1d4ed8", borderColor: "#bfdbfe", background: "#eff6ff" }}
           >
             Maternal Health · Kenya
-          </span>
+          </span> */}
 
           <h1
             className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.08] mb-6 text-[#0f172a]"
@@ -544,7 +544,7 @@ export default function App() {
                   className="text-base font-extrabold text-[#1d4ed8]"
                   style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                 >
-                  AfyaVentures
+                  Nurture
                 </span>
               </div>
               <p className="text-sm text-[#64748b] leading-relaxed">
@@ -587,7 +587,7 @@ export default function App() {
                   href="mailto:hello@afyaventures.co.ke"
                   className="text-sm text-[#64748b] hover:text-[#1d4ed8] transition-colors block"
                 >
-                  hello@afyaventures.co.ke
+                  hello@nurture.co.ke
                 </a>
                 <p className="text-sm text-[#64748b]">
                   Nairobi, Kenya
@@ -622,7 +622,7 @@ export default function App() {
           {/* Bottom row */}
           <div className="border-t border-[#dbeafe] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-[#94a3b8]">
-              © 2025 AfyaVentures. All rights reserved.
+              © 2025 Nurture. All rights reserved.
             </p>
             <p className="text-xs text-[#94a3b8]">
               Built with purpose — for every mother Kenya's system has left behind.

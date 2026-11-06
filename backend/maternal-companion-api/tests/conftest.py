@@ -1,9 +1,18 @@
 import os
 
-# Must be set before the app (and its cached settings) are imported.
-os.environ["ENVIRONMENT"] = "local"
-os.environ["WHATSAPP_APP_SECRET"] = "test-app-secret"
-os.environ["WHATSAPP_VERIFY_TOKEN"] = "test-verify-token"
+# Must be set before the app (and its cached settings) are imported. Real environment variables
+# take priority over any local .env file, so the tests behave the same on every machine.
+os.environ.update(
+    {
+        "ENVIRONMENT": "local",
+        "DATABASE_URL": "sqlite+aiosqlite://",
+        "JWT_SECRET": "test-jwt-secret-test-jwt-secret-1234",
+        "PHONE_HASH_PEPPER": "test-pepper-test-pepper-test-pepper-1",
+        "FIELD_ENCRYPTION_KEY": "DRP9v8RoAwRKgkggsRa0pBKI9S6ppNpr1AjyIQhn5Xo=",
+        "WHATSAPP_APP_SECRET": "test-app-secret",
+        "WHATSAPP_VERIFY_TOKEN": "test-verify-token",
+    }
+)
 
 import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
