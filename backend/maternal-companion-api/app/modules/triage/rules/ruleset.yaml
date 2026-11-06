@@ -1,0 +1,73 @@
+# ILLUSTRATIVE PLACEHOLDER RULES -- NOT CLINICALLY VALIDATED.
+# Before any pilot, replace with rules transcribed from the Kenya MoH Guidelines for Quality
+# Obstetrics and Perinatal Care and signed off by your clinical advisor. Every change must
+# bump `version` and keep tests/test_triage.py (the clinical case suite) green.
+#
+# Rule fields: id, tier, all_of / any_of (symptom names), optional min_weeks / max_weeks
+# (gestation gating; if weeks are unknown the rule still applies -- we over-escalate on purpose).
+# Final tier = highest tier among matched rules; no match = low.
+
+version: "2026.1-draft"
+
+symptoms:
+  - severe_headache
+  - visual_disturbance
+  - swelling_face_hands
+  - vaginal_bleeding
+  - reduced_fetal_movement
+  - fever
+  - convulsions
+  - severe_abdominal_pain
+
+# Short on purpose: USSD screens are ~160 characters. Both languages need clinical + native review.
+advice:
+  low:
+    en: "Keep attending clinic visits and take your iron/folic tablets as directed."
+    sw: "Endelea kuhudhuria kliniki na kumeza vidonge vya chuma/folic ulivyoelekezwa."
+  moderate:
+    en: "Please visit your clinic within 24 hours. Your health worker may call you."
+    sw: "Tafadhali tembelea kliniki ndani ya saa 24. Mhudumu wa afya anaweza kukupigia."
+  high:
+    en: "Go to a health facility today. Your community health worker has been alerted."
+    sw: "Nenda kituo cha afya leo. Mhudumu wako wa afya ya jamii amearifiwa."
+  emergency:
+    en: "This is an emergency. Go to the nearest hospital NOW. Your health worker is alerted."
+    sw: "Hii ni dharura. Nenda hospitali iliyo karibu SASA. Mhudumu wako amearifiwa."
+
+rules:
+  - id: EMERG_CONVULSIONS
+    tier: emergency
+    any_of: [convulsions]
+  - id: EMERG_BLEEDING
+    tier: emergency
+    any_of: [vaginal_bleeding]
+  - id: EMERG_HEADACHE_VISUAL
+    tier: emergency
+    all_of: [severe_headache, visual_disturbance]
+    min_weeks: 20
+  - id: HIGH_HEADACHE_SWELLING
+    tier: high
+    all_of: [severe_headache, swelling_face_hands]
+    min_weeks: 20
+  - id: HIGH_FEVER_HEADACHE
+    tier: high
+    all_of: [fever, severe_headache]
+  - id: HIGH_REDUCED_MOVEMENT
+    tier: high
+    any_of: [reduced_fetal_movement]
+    min_weeks: 20
+  - id: HIGH_ABDOMINAL_PAIN
+    tier: high
+    any_of: [severe_abdominal_pain]
+  - id: MOD_HEADACHE
+    tier: moderate
+    any_of: [severe_headache]
+  - id: MOD_VISUAL
+    tier: moderate
+    any_of: [visual_disturbance]
+  - id: MOD_SWELLING
+    tier: moderate
+    any_of: [swelling_face_hands]
+  - id: MOD_FEVER
+    tier: moderate
+    any_of: [fever]
