@@ -54,9 +54,11 @@ async def client(session_factory):
 
 @pytest_asyncio.fixture
 async def make_chp(session_factory):
-    async def _make(email: str, county: str = "Siaya"):
+    async def _make(email: str, county: str = "Siaya", role: str = "chp"):
         async with session_factory() as s:
-            chp = await create_chp(s, name=email, email=email, password=PASSWORD, county=county)
+            chp = await create_chp(
+                s, name=email, email=email, password=PASSWORD, county=county, role=role
+            )
             return chp.id
 
     return _make

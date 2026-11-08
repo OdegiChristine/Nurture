@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit
 from app.core.db import get_session
-from app.core.deps import Principal, chp_only
+from app.core.deps import Principal, chp_only, staff_only
 from app.core.errors import UnauthorizedError
 from app.core.security import create_access_token, decrypt_field, hash_password, verify_password
 from app.core.time import as_utc, utcnow
@@ -160,7 +160,7 @@ def _alert_out(a: Alert) -> AlertOut:
 
 @router.get("/v1/chp/alerts", response_model=list[AlertOut])
 async def my_alerts(
-    principal: Principal = chp_only,
+    principal: Principal = staff_only,
     session: AsyncSession = Depends(get_session),
 ):
     return [_alert_out(a) for a in await alert_service.list_open_for_chp(session, principal.id)]
@@ -169,7 +169,7 @@ async def my_alerts(
 @router.post("/v1/chp/alerts/{alert_id}/acknowledge", response_model=AlertOut)
 async def acknowledge(
     alert_id: uuid.UUID,
-    principal: Principal = chp_only,
+    principal: Principal = staff_only,
     session: AsyncSession = Depends(get_session),
 ):
     return _alert_out(await alert_service.acknowledge(session, alert_id, principal.id))
@@ -179,7 +179,7 @@ async def acknowledge(
 async def resolve(
     alert_id: uuid.UUID,
     body: ResolveIn,
-    principal: Principal = chp_only,
+    principal: Principal = staff_only,
     session: AsyncSession = Depends(get_session),
 ):
     return _alert_out(await alert_service.resolve(session, alert_id, principal.id, body.note))
