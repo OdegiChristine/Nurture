@@ -2,6 +2,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +12,11 @@ from app.core.errors import ConflictError
 from app.core.time import utcnow
 from app.modules.alerts.models import Alert
 from app.modules.checkins.models import CheckIn
+from app.modules.chp.service import pick_alert_recipient
 from app.modules.mothers.models import Mother
 from app.modules.triage.engine import ALERT_TIERS, Tier, evaluate, load_ruleset
+
+log = structlog.get_logger()
 
 
 @dataclass
@@ -57,10 +61,15 @@ async def submit_checkin(
     session.add(checkin)
     alert: Alert | None = None
     if triage.tier in ALERT_TIERS:
+        recipient = await pick_alert_recipient(session, mother)
         alert = Alert(
-            mother_id=mother.id, checkin_id=checkin_id, chp_id=mother.chp_id, tier=triage.tier.value
+            mother_id=mother.id, checkin_id=checkin_id, chp_id=recipient, tier=triage.tier.value
         )
         session.add(alert)
+        if recipient is None:
+            log.error("alert_unrouted", checkin_id=str(checkin_id), tier=triage.tier.value)
+        elif recipient != mother.chp_id:
+            log.warning("alert_routed_to_supervisor", checkin_id=str(checkin_id))
     audit(
         session,
         actor_id=mother.id,
