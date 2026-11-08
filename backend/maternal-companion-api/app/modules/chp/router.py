@@ -49,6 +49,7 @@ async def login(body: LoginIn, session: AsyncSession = Depends(get_session)):
 class CohortItem(BaseModel):
     mother_id: uuid.UUID
     pseudonym: str | None
+    label: str
     county: str
     gestation_weeks: int
     latest_tier: str | None
@@ -120,6 +121,7 @@ async def cohort(
             CohortItem(
                 mother_id=m.id,
                 pseudonym=m.pseudonym,
+                label=m.display_label(),
                 county=m.county,
                 gestation_weeks=m.current_gestation_weeks(),
                 latest_tier=last.risk_tier if last else None,
@@ -143,6 +145,9 @@ async def cohort(
 class AlertOut(BaseModel):
     id: uuid.UUID
     mother_id: uuid.UUID
+    label: str
+    county: str
+    gestation_weeks: int
     tier: str
     status: str
     created_at: datetime
@@ -152,18 +157,31 @@ class ResolveIn(BaseModel):
     note: str
 
 
-def _alert_out(a: Alert) -> AlertOut:
-    return AlertOut(
-        id=a.id, mother_id=a.mother_id, tier=a.tier, status=a.status, created_at=a.created_at
-    )
+async def _alert_outs(session: AsyncSession, alerts: list[Alert]) -> list[AlertOut]:
+    ids = {a.mother_id for a in alerts}
+    rows = await session.execute(select(Mother).where(Mother.id.in_(ids))) if ids else None
+    mothers = {m.id: m for m in rows.scalars()} if rows else {}
+    return [
+        AlertOut(
+            id=a.id,
+            mother_id=a.mother_id,
+            label=mothers[a.mother_id].display_label(),
+            county=mothers[a.mother_id].county,
+            gestation_weeks=mothers[a.mother_id].current_gestation_weeks(),
+            tier=a.tier,
+            status=a.status,
+            created_at=a.created_at,
+        )
+        for a in alerts
+    ]
 
 
 @router.get("/v1/chp/alerts", response_model=list[AlertOut])
 async def my_alerts(
-    principal: Principal = staff_only,
-    session: AsyncSession = Depends(get_session),
+    principal: Principal = staff_only, session: AsyncSession = Depends(get_session)
 ):
-    return [_alert_out(a) for a in await alert_service.list_open_for_chp(session, principal.id)]
+    alerts = await alert_service.list_open_for_chp(session, principal.id)
+    return await _alert_outs(session, alerts)
 
 
 @router.post("/v1/chp/alerts/{alert_id}/acknowledge", response_model=AlertOut)
@@ -172,7 +190,8 @@ async def acknowledge(
     principal: Principal = staff_only,
     session: AsyncSession = Depends(get_session),
 ):
-    return _alert_out(await alert_service.acknowledge(session, alert_id, principal.id))
+    alert = await alert_service.acknowledge(session, alert_id, principal.id)
+    return (await _alert_outs(session, [alert]))[0]
 
 
 @router.post("/v1/chp/alerts/{alert_id}/resolve", response_model=AlertOut)
@@ -182,4 +201,5 @@ async def resolve(
     principal: Principal = staff_only,
     session: AsyncSession = Depends(get_session),
 ):
-    return _alert_out(await alert_service.resolve(session, alert_id, principal.id, body.note))
+    alert = await alert_service.resolve(session, alert_id, principal.id, body.note)
+    return (await _alert_outs(session, [alert]))[0]

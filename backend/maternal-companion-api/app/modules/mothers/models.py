@@ -36,6 +36,10 @@ class Mother(Base):
     chp_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("chps.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+    def display_label(self) -> str:
+        """Safe name for dashboards: the pseudonym, or an anonymous tag (no phone digits)."""
+        return self.pseudonym or f"Anonymous #{str(self.id)[:4].upper()}"
+
     def current_gestation_weeks(self) -> int:
         elapsed_weeks = (utcnow() - as_utc(self.enrolled_at)).days // 7
         return self.gestation_weeks_at_enrolment + max(elapsed_weeks, 0)

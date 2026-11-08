@@ -1,7 +1,9 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,6 +47,10 @@ def create_app() -> FastAPI:
         whatsapp_router,
     ):
         app.include_router(router)
+
+    @app.get("/dashboard", include_in_schema=False)
+    async def dashboard() -> FileResponse:
+        return FileResponse(Path(__file__).parent / "static" / "dashboard.html")
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

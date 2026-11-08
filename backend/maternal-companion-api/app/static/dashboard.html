@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maternal Companion · Health worker dashboard</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#17212b;--mute:#5b6770;--line:#dfe3e8;--accent:#1b3a5c;--btn:#1b3a5c;--btnink:#fff;
+--em:#b42318;--em-bg:#fee4e2;--hi:#b54708;--hi-bg:#fef0c7;--mo:#7a5d00;--mo-bg:#fff7d6;--lo:#1f6b43;--lo-bg:#dcf5e6;--un:#4a5560;--un-bg:#e9ecef}
+@media(prefers-color-scheme:dark){:root{--bg:#10161d;--card:#18212b;--ink:#e8edf2;--mute:#9aa6b2;--line:#2b3744;--accent:#8fb4dc;--btn:#8fb4dc;--btnink:#10161d;
+--em:#ffb4ab;--em-bg:#4a1d19;--hi:#ffcf99;--hi-bg:#47290c;--mo:#f3dc7a;--mo-bg:#403506;--lo:#8be0ae;--lo-bg:#12372a;--un:#c3ccd5;--un-bg:#2b3744}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+header h1{font-size:17px;margin:0;color:var(--accent);flex:1 1 auto}
+.muted{color:var(--mute);font-size:13px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:8px}
+button.pri{background:var(--btn);color:var(--btnink);border-color:var(--btn)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:100%}
+#login{max-width:340px;margin:12vh auto;padding:24px;background:var(--card);border:1px solid var(--line);border-radius:14px;display:grid;gap:12px}
+#login h2{margin:0;color:var(--accent)}
+label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+.err{color:var(--em);min-height:1.2em;font-size:13px}
+#stats{display:flex;flex-wrap:wrap;gap:10px;padding:14px 20px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-width:110px}
+.stat b{display:block;font-size:22px}
+main{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:16px;padding:16px 20px}
+main.solo{grid-template-columns:1fr;max-width:640px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+section h2{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.alert{border-left:6px solid var(--un)}
+.alert.t-emergency{border-left-color:var(--em)}.alert.t-high{border-left-color:var(--hi)}
+.alert.new{animation:flash 2.4s ease-out 1}
+@keyframes flash{0%{box-shadow:0 0 0 4px var(--em)}100%{box-shadow:0 0 0 0 transparent}}
+@media(prefers-reduced-motion:reduce){.alert.new{animation:none}}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.03em}
+.b-emergency{background:var(--em-bg);color:var(--em)}.b-high{background:var(--hi-bg);color:var(--hi)}
+.b-moderate{background:var(--mo-bg);color:var(--mo)}.b-low{background:var(--lo-bg);color:var(--lo)}.b-un{background:var(--un-bg);color:var(--un)}
+.flag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:12px;background:var(--mo-bg);color:var(--mo);font-weight:600}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.empty{padding:18px;text-align:center;color:var(--mute)}
+#banner{display:none;margin:12px 20px 0;padding:8px 12px;border-radius:8px;background:var(--hi-bg);color:var(--hi)}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<form id="login" hidden>
+  <h2>Health worker sign-in</h2>
+  <label>Email<input name="email" type="email" autocomplete="username" required></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <button class="pri">Sign in</button>
+  <div class="err" id="loginErr" role="alert"></div>
+</form>
+
+<div id="app" hidden>
+  <header>
+    <h1>Maternal Companion · <span id="who"></span></h1>
+    <span class="muted" id="updated"></span>
+    <button id="refresh">Refresh</button>
+    <button id="logout">Sign out</button>
+  </header>
+  <div id="banner" role="alert"></div>
+  <div id="stats"></div>
+  <main id="layout">
+    <section><h2>Alerts needing action</h2><div id="alerts"></div></section>
+    <section id="cohortSec"><h2>My mothers (highest risk first)</h2><div class="wrap" id="cohort"></div></section>
+  </main>
+</div>
+<div class="sr" aria-live="assertive" id="live"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch {} };
+const load = k => { try { return sessionStorage.getItem(k); } catch { return null; } };
+let token = load("tok"), role = null, email = null, timer = null, resolving = null, seen = null;
+let data = { alerts: [], cohort: [] };
+
+const parse = s => new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z");
+function ago(s) {
+  if (!s) return "never";
+  const m = Math.max(0, Math.round((Date.now() - parse(s)) / 60000));
+  if (m < 1) return "just now";
+  if (m < 60) return m + " min ago";
+  const h = Math.round(m / 60);
+  return h < 48 ? h + " h ago" : Math.round(h / 24) + " d ago";
+}
+const badge = t => `<span class="badge b-${esc(t || "un")}">${t ? esc(t.toUpperCase()) : "NO CHECK-IN"}</span>`;
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) } });
+  if (r.status === 401 && token) { logout(); throw new Error("Session expired. Please sign in again."); }
+  if (!r.ok) { let m = "Request failed"; try { m = (await r.json()).message || m; } catch {} throw new Error(m); }
+  return r.json();
+}
+
+function claims(t) {
+  try { return JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { return {}; }
+}
+
+function renderStats() {
+  const open = t => data.alerts.filter(a => a.tier === t).length;
+  const quiet = data.cohort.filter(c => c.days_since_contact >= 7 || c.latest_tier == null).length;
+  const stat = (n, l) => `<div class="stat"><b>${n}</b><span class="muted">${l}</span></div>`;
+  $("#stats").innerHTML = stat(open("emergency"), "Emergency alerts") + stat(open("high"), "High-risk alerts") +
+    (role === "chp" ? stat(data.cohort.length, "Mothers") + stat(quiet, "Need a check-in nudge") : "");
+  const n = data.alerts.length;
+  document.title = (n ? `(${n}) ` : "") + "Maternal Companion · Dashboard";
+}
+
+function renderAlerts(force = false) {
+  if (resolving && !force) return;   // don't wipe a note being typed
+  const box = $("#alerts");
+  if (!data.alerts.length) { box.innerHTML = '<div class="card empty">No open alerts. 🎉</div>'; return; }
+  box.innerHTML = data.alerts.map(a => {
+    const isNew = seen && !seen.has(a.id);
+    return `<article class="card alert t-${esc(a.tier)}${isNew ? " new" : ""}" data-id="${esc(a.id)}">
+      <div class="row">${badge(a.tier)}<strong>${esc(a.label)}</strong>
+        <span class="muted">${esc(a.gestation_weeks)} wks · ${esc(a.county)} · ${ago(a.created_at)}</span></div>
+      <div class="actions">
+        ${a.status === "open" ? '<button class="pri" data-act="ack">Acknowledge</button>' : '<span class="muted">✔ Acknowledged</span>'}
+        <button data-act="resolve">Resolve…</button>
+      </div>
+      ${resolving === a.id ? `<form data-form="${esc(a.id)}" class="actions">
+        <input name="note" required maxlength="500" placeholder="What was done? e.g. referred to facility" autofocus>
+        <button class="pri">Confirm resolve</button><button type="button" data-act="cancel">Cancel</button></form>` : ""}
+    </article>`;
+  }).join("");
+  const input = box.querySelector("input[name=note]"); if (input) input.focus();
+}
+
+function renderCohort() {
+  const box = $("#cohort");
+  if (!data.cohort.length) { box.innerHTML = '<div class="card empty">No mothers assigned yet.</div>'; return; }
+  box.innerHTML = `<table><thead><tr><th>Mother</th><th>Latest risk</th><th>Last check-in</th><th>Alerts</th><th>Phone</th></tr></thead><tbody>` +
+    data.cohort.map(c => `<tr>
+      <td><strong>${esc(c.label)}</strong><div class="muted">${esc(c.gestation_weeks)} wks · ${esc(c.county)}</div></td>
+      <td>${badge(c.latest_tier)}</td>
+      <td>${ago(c.last_checkin_at)}${c.days_since_contact >= 7 ? ` <span class="flag">No contact ${esc(c.days_since_contact)} d</span>` : ""}</td>
+      <td>${c.open_alerts ? `<span class="flag">${esc(c.open_alerts)} open</span>` : "–"}</td>
+      <td>${c.phone ? esc(c.phone) : '<span class="muted">Not shared</span>'}</td></tr>`).join("") + "</tbody></table>";
+}
+
+async function refresh() {
+  try {
+    const [alerts, cohort] = await Promise.all([api("/v1/chp/alerts"), role === "chp" ? api("/v1/chp/cohort") : []]);
+    data = { alerts, cohort };
+    const fresh = seen ? alerts.filter(a => !seen.has(a.id) && a.tier === "emergency") : [];
+    if (fresh.length) $("#live").textContent = "New emergency alert: " + fresh.map(a => a.label).join(", ");
+    renderStats(); renderAlerts(); renderCohort();
+    seen = new Set(alerts.map(a => a.id));
+    $("#banner").style.display = "none";
+    $("#updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  } catch (e) {
+    if (token) { $("#banner").textContent = e.message + " Retrying…"; $("#banner").style.display = "block"; }
+  }
+}
+
+async function act(path, body) {
+  try { await api(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }); resolving = null; await refresh(); }
+  catch (e) { $("#banner").textContent = e.message; $("#banner").style.display = "block"; }
+}
+
+function start() {
+  const c = claims(token); role = c.role;
+  $("#login").hidden = true; $("#app").hidden = false;
+  $("#who").textContent = role === "chp" ? "Health worker" : "Supervisor";
+  $("#cohortSec").hidden = role !== "chp"; $("#layout").classList.toggle("solo", role !== "chp");
+  seen = null; refresh(); clearInterval(timer); timer = setInterval(refresh, 8000);
+}
+function logout() {
+  token = null; store("tok", null); clearInterval(timer);
+  resolving = null; seen = null; data = { alerts: [], cohort: [] };
+  $("#login").reset(); $("#loginErr").textContent = "";   // don't leave the last user's email behind
+  $("#app").hidden = true; $("#login").hidden = false;
+}
+
+$("#login").addEventListener("submit", async e => {
+  e.preventDefault(); $("#loginErr").textContent = "";
+  try {
+    const r = await fetch("/v1/auth/chp/login", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: e.target.email.value, password: e.target.password.value }) });
+    if (!r.ok) throw new Error("Incorrect email or password.");
+    token = (await r.json()).access_token; store("tok", token); e.target.password.value = ""; start();
+  } catch (err) { $("#loginErr").textContent = err.message; }
+});
+$("#alerts").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const id = b.closest("[data-id]")?.dataset.id;
+  if (b.dataset.act === "ack") act(`/v1/chp/alerts/${id}/acknowledge`);
+  if (b.dataset.act === "resolve") { resolving = id; renderAlerts(true); }
+  if (b.dataset.act === "cancel") { resolving = null; renderAlerts(true); }
+});
+$("#alerts").addEventListener("submit", e => {
+  e.preventDefault();
+  const note = e.target.note.value.trim();
+  if (note) act(`/v1/chp/alerts/${e.target.dataset.form}/resolve`, { note });
+});
+$("#refresh").addEventListener("click", refresh);
+$("#logout").addEventListener("click", logout);
+
+token ? start() : ($("#login").hidden = false);
+</script>
+</body>
+</html>
