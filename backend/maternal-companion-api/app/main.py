@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, configure_logging
+from app.modules.alerts.router import router as alerts_router
 from app.modules.channels.ussd import router as ussd_router
 from app.modules.channels.whatsapp import router as whatsapp_router
 from app.modules.checkins.router import router as checkins_router
@@ -35,7 +36,14 @@ def create_app() -> FastAPI:
     add_request_id_middleware(app)
     register_error_handlers(app)
 
-    for router in (mothers_router, checkins_router, chp_router, ussd_router, whatsapp_router):
+    for router in (
+        mothers_router,
+        checkins_router,
+        chp_router,
+        alerts_router,
+        ussd_router,
+        whatsapp_router,
+    ):
         app.include_router(router)
 
     @app.get("/health", tags=["ops"])
