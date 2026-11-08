@@ -49,3 +49,5 @@ def require_role(*roles: Role):
 # Module-level singletons keep route signatures short (and satisfy lint rule B008).
 mother_only = Depends(require_role(Role.MOTHER))
 chp_only = Depends(require_role(Role.CHP))
+staff_only = Depends(require_role(Role.CHP, Role.SUPERVISOR))
+oversight_only = Depends(require_role(Role.SUPERVISOR, Role.ADMIN))
