@@ -8,6 +8,7 @@ from app.core.audit import audit
 from app.core.errors import ConflictError, NotFoundError
 from app.core.time import utcnow
 from app.modules.alerts.models import Alert
+from app.modules.chp.models import Chp
 
 
 async def list_open_for_chp(session: AsyncSession, chp_id: uuid.UUID) -> list[Alert]:
@@ -66,6 +67,43 @@ async def resolve(
         action="alert_resolved",
         resource_type="alert",
         resource_id=alert.id,
+    )
+    await session.commit()
+    return alert
+
+
+async def list_unrouted(session: AsyncSession) -> list[Alert]:
+    result = await session.execute(
+        select(Alert)
+        .where(Alert.chp_id.is_(None), Alert.status != "resolved")
+        .order_by(Alert.created_at)
+    )
+    return list(result.scalars())
+
+
+async def assign(
+    session: AsyncSession,
+    alert_id: uuid.UUID,
+    target_id: uuid.UUID,
+    *,
+    actor_id: uuid.UUID,
+    actor_role: str,
+) -> Alert:
+    alert = await session.get(Alert, alert_id)
+    target = await session.get(Chp, target_id)
+    if alert is None:
+        raise NotFoundError("Alert not found")
+    if target is None or not target.is_active:
+        raise NotFoundError("Target health worker not found")
+    alert.chp_id = target.id
+    audit(
+        session,
+        actor_id=actor_id,
+        actor_role=actor_role,
+        action="alert_assigned",
+        resource_type="alert",
+        resource_id=alert.id,
+        detail={"to": str(target.id)},
     )
     await session.commit()
     return alert
