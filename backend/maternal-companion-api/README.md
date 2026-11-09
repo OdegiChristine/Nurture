@@ -72,7 +72,7 @@ scripts/seed_dev.py
 - **No LLM on the USSD path.** USSD is pure rules + DB so screens answer in seconds.
 - Outside `local`, the app refuses to start with the dev default secrets.
 
-## What is NOT done yet (read before piloting)
+## What is NOT done yet
 
 1. **Triage rules are illustrative placeholders.** Replace them with rules from the MoH
    guidelines, signed off by your clinical advisor, and replace the cases in
