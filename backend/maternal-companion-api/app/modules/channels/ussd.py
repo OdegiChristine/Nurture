@@ -17,6 +17,7 @@ from app.core.db import get_session
 from app.core.security import normalize_msisdn
 from app.modules.checkins.service import submit_checkin
 from app.modules.mothers.service import create_mother, get_mother_by_phone
+from app.modules.nutrition.service import nutrition_tip
 
 router = APIRouter(tags=["ussd"])
 
@@ -35,8 +36,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "menu": "Welcome back\n1. Symptom check\n2. Eating well tip",
         "yes_no": "1. Yes\n2. No",
         "invalid": "Invalid choice. Please dial again.",
-        "tip": "Eat iron-rich foods like omena, sukuma wiki and beans. "
-        "Take your iron/folic tablets as given at the clinic.",
         "reg_weeks": "How many weeks pregnant are you? (1-42)",
         "reg_age": "Your age?",
         "reg_county": "County:\n1. Garissa\n2. Tana River\n3. Siaya\n4. Other",
@@ -53,8 +52,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "menu": "Karibu tena\n1. Kagua dalili\n2. Ushauri wa lishe",
         "yes_no": "1. Ndiyo\n2. Hapana",
         "invalid": "Chaguo si sahihi. Tafadhali piga tena.",
-        "tip": "Kula vyakula vyenye chuma kama omena, sukuma wiki na maharagwe. "
-        "Meza vidonge vya chuma/folic ulivyopewa kliniki.",
         "reg_weeks": "Una mimba ya wiki ngapi? (1-42)",
         "reg_age": "Umri wako?",
         "reg_county": "Kaunti:\n1. Garissa\n2. Tana River\n3. Siaya\n4. Nyingine",
@@ -102,7 +99,7 @@ async def handle_ussd(session: AsyncSession, *, session_id: str, phone: str, tex
     if not steps:
         return _con(t["menu"])
     if steps[0] == "2" and len(steps) == 1:
-        return _end(t["tip"])
+        return _end(nutrition_tip(mother.current_gestation_weeks(), mother.county, lang))
     if steps[0] != "1":
         return _bad(lang)
 

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USSD phone simulator · Maternal Companion</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#17212b;--mute:#5b6770;--line:#dfe3e8;--accent:#1b3a5c;--scr:#d8e6c8;--scrink:#1d2b14}
+@media(prefers-color-scheme:dark){:root{--bg:#10161d;--card:#18212b;--ink:#e8edf2;--mute:#9aa6b2;--line:#2b3744;--accent:#8fb4dc;--scr:#c9dcb6}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:20px}
+h1{font-size:18px;color:var(--accent);margin:0 0 4px}.muted{color:var(--mute);font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;margin-top:16px}
+.phone{width:310px;background:#222;border-radius:34px;padding:22px 18px;box-shadow:0 8px 30px #0005}
+.screen{background:var(--scr);color:var(--scrink);border-radius:8px;min-height:230px;padding:12px;font:15px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.row{display:flex;gap:8px;margin-top:12px}
+input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff;color:#111}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:8px}
+button.pri{background:#2e7d4f;color:#fff;border-color:#2e7d4f}button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{flex:1 1 320px;max-width:460px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 8px}.presets{display:grid;gap:8px}
+label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+pre{margin:0;white-space:pre-wrap;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
+</style>
+</head>
+<body>
+<h1>USSD phone simulator</h1>
+<div class="muted">Talks to the real <code>/ussd/callback</code> endpoint, exactly as the telco aggregator would.</div>
+<div class="wrap">
+  <div class="phone">
+    <div class="screen" id="screen" aria-live="polite">Enter a number and press Dial.</div>
+    <div class="row"><input id="reply" inputmode="numeric" placeholder="Your reply" aria-label="Your reply" disabled>
+      <button class="pri" id="send" disabled>Send</button></div>
+    <div class="row"><input id="phone" value="0700000001" aria-label="Phone number">
+      <button class="pri" id="dial">Dial *123#</button></div>
+  </div>
+  <div class="panel">
+    <div class="card"><h2>Auto-play (types the replies for you)</h2>
+      <div class="presets">
+        <button data-steps="1,28,17,3,1" data-hint="Use an UNREGISTERED number, e.g. 0700000001">Register a new mother (Siaya)</button>
+        <button data-steps="1,1,1,2,2,2,2" data-hint="Registered number, e.g. 0700000001 after registering">Symptom check: headache + blurred vision</button>
+        <button data-steps="1,2,2,2,2,2,2" data-hint="Registered number">Symptom check: no symptoms</button>
+        <button data-steps="2" data-hint="Registered number">Nutrition tip</button>
+      </div>
+      <div class="muted" id="hint" style="margin-top:8px"></div>
+    </div>
+    <div class="card"><h2>What the server sees</h2><pre id="raw">(nothing yet)</pre></div>
+    <div class="card muted">Quick registered numbers from the demo data: 0711000001 (Siaya), 0722000002 (Garissa).</div>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s), sleep = ms => new Promise(r => setTimeout(r, ms));
+let sid = null, path = [], ended = true, busy = false;
+
+function setUi() {
+  $("#reply").disabled = $("#send").disabled = ended || busy;
+  $("#dial").disabled = busy;
+  document.querySelectorAll("[data-steps]").forEach(b => b.disabled = busy);
+}
+async function send(input) {
+  if (input != null) path.push(input);
+  const fields = { sessionId: sid, serviceCode: "*123#", phoneNumber: $("#phone").value.trim(), text: path.join("*") };
+  try {
+    const r = await fetch("/ussd/callback", { method: "POST", body: new URLSearchParams(fields) });
+    const out = await r.text();
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    ended = out.startsWith("END");
+    $("#screen").textContent = out.replace(/^(CON|END) /, "") + (ended ? "\n\n[session ended]" : "");
+    $("#raw").textContent = Object.entries(fields).map(([k, v]) => `${k} = ${v}`).join("\n") + "\n\nresponse:\n" + out;
+  } catch (e) { ended = true; $("#screen").textContent = "Network error: " + e.message; }
+  setUi();
+}
+async function dial() { sid = "sim-" + Date.now(); path = []; ended = false; $("#screen").textContent = "Connecting…"; await send(null); if (!ended) $("#reply").focus(); }
+
+const READ_MS = 3500, TYPE_MS = 1000;
+async function play(steps) {
+  busy = true; setUi(); await dial();
+  for (const s of steps) {
+    if (ended) break;
+    await sleep(READ_MS); $("#reply").value = s; await sleep(TYPE_MS); $("#reply").value = ""; await send(s);
+  }
+  busy = false; setUi();
+}
+$("#dial").onclick = dial;
+$("#send").onclick = () => { const v = $("#reply").value.trim(); if (v) { $("#reply").value = ""; send(v); } };
+$("#reply").addEventListener("keydown", e => { if (e.key === "Enter") $("#send").click(); });
+document.querySelectorAll("[data-steps]").forEach(b => b.onclick = () => { $("#hint").textContent = b.dataset.hint; play(b.dataset.steps.split(",")); });
+</script>
+</body>
+</html>

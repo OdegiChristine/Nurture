@@ -1,11 +1,11 @@
-# Demo script (target: 8–10 minutes)
+# Demo script
 
 **Audience takeaway:** a teenage mother's danger sign reaches her health worker in seconds, on a
 channel that needs no smartphone and no data bundle.
 
 Status key: ✅ works today · 🔨 being built (Sat/Sun) · ⏳ stretch
 
-## 0. Setup (do this 30 minutes before, every time)
+## 0. Setup
 
 ```bash
 export DATABASE_URL=sqlite+aiosqlite:///demo.db     # PowerShell: $env:DATABASE_URL="sqlite+aiosqlite:///demo.db"
@@ -17,10 +17,8 @@ Accounts (password for all: `demo-pass-2026`): `grace@demo.org` (CHP, Siaya),
 `hawa@demo.org` (CHP, Garissa), `supervisor@demo.org`.
 Unregistered number for the live registration: **0700000001**.
 
-Checklist: laptop charged and on mains · browser tabs pre-opened and logged in · screen recording
-of the full run saved as a backup · slides open · notifications off.
 
-## 1. The problem, 60 seconds (slides)
+## 1. The problem
 
 - Maternal mortality in Kenya remains high; the "Three Delays".
 - Teenage mothers avoid clinics because of stigma; care happens in episodes, and CHPs have no way
@@ -29,7 +27,7 @@ of the full run saved as a backup · slides open · notifications off.
 
 ## 2. Live: the mother's phone, 3 minutes
 
-**Registration ✅** (a feature phone could do this). Use the USSD phone screen 🔨, or:
+**Registration ✅** (a feature phone could do this). Use the phone simulator at **/simulator** ✅ (its Auto-play buttons type the inputs for you), or curl:
 
 ```bash
 curl -s -X POST localhost:8000/ussd/callback -d "sessionId=demo1&phoneNumber=0700000001&text=1*28*17*3*1"
@@ -48,7 +46,7 @@ curl -s -X POST localhost:8000/ussd/callback -d "sessionId=demo2&phoneNumber=070
 Expected: **"This is an emergency. Go to the nearest hospital NOW…"**
 Say: *"The rule that fired is on record. The system never diagnoses; it routes her to care."*
 
-## 3. Live: the CHP's screen, 3 minutes (dashboard 🔨 Saturday)
+## 3. Live: the CHP's screen, 3 minutes (dashboard ✅ at /dashboard)
 
 1. Log in as **Grace**. The new mother is at the **top, marked emergency**. Others sort below by risk.
 2. Point out: Achieng's open **high** alert; **Auma** has not checked in for 9 days; **Anyango**
@@ -59,9 +57,9 @@ Say: *"The rule that fired is on record. The system never diagnoses; it routes h
 **Safety net:** log in as the **supervisor**. Zawadi (Tana River, no CHP there yet) has an
 emergency here. *"An alert is never dropped because a county has no health worker."*
 
-## 4. Nutrition, 1 minute (🔨 Sunday)
+## 4. Nutrition, 1 minute ✅
 
-On USSD: `2`. Expected: iron-rich local foods (omena, sukuma wiki, beans).
+On USSD: `2`. Expected (28 weeks, Siaya): late-pregnancy tip with omena, kunde, sukuma wiki. It changes with trimester and county.
 Say: *"Hyper-local, not generic advice. Next step: exact nutrient data from the Kenya Food
 Composition Tables."*
 
@@ -71,7 +69,7 @@ Show the architecture diagram. Built: USSD, triage engine, alerts, CHP APIs, aud
 webhook. Next: SMS delivery to CHPs, reminders, WhatsApp conversations, offline Android app,
 retrieval-grounded Q&A.
 
-## Say this honestly (it builds trust with health audiences)
+## To be done:
 
 - Triage rules are **illustrative placeholders**; a clinician must validate them before any pilot.
 - Kiswahili text needs **native and clinical review**.

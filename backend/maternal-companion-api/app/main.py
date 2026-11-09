@@ -18,6 +18,7 @@ from app.modules.channels.whatsapp import router as whatsapp_router
 from app.modules.checkins.router import router as checkins_router
 from app.modules.chp.router import router as chp_router
 from app.modules.mothers.router import router as mothers_router
+from app.modules.nutrition.router import router as nutrition_router
 
 
 @asynccontextmanager
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
 
     for router in (
         mothers_router,
+        nutrition_router,
         checkins_router,
         chp_router,
         alerts_router,
@@ -51,6 +53,10 @@ def create_app() -> FastAPI:
     @app.get("/dashboard", include_in_schema=False)
     async def dashboard() -> FileResponse:
         return FileResponse(Path(__file__).parent / "static" / "dashboard.html")
+
+    @app.get("/simulator", include_in_schema=False)
+    async def simulator() -> FileResponse:
+        return FileResponse(Path(__file__).parent / "static" / "simulator.html")
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:
