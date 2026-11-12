@@ -15,6 +15,7 @@ from app.core.logging import add_request_id_middleware, configure_logging
 from app.modules.alerts.router import router as alerts_router
 from app.modules.channels.ussd import router as ussd_router
 from app.modules.channels.whatsapp import router as whatsapp_router
+from app.modules.chat.router import router as chat_router
 from app.modules.checkins.router import router as checkins_router
 from app.modules.chp.router import router as chp_router
 from app.modules.mothers.router import router as mothers_router
@@ -49,6 +50,13 @@ def create_app() -> FastAPI:
         whatsapp_router,
     ):
         app.include_router(router)
+
+    if settings.environment == "local":  # demo-only: speaks as any phone number
+        app.include_router(chat_router)
+
+        @app.get("/chat", include_in_schema=False)
+        async def chat_page() -> FileResponse:
+            return FileResponse(Path(__file__).parent / "static" / "chat.html")
 
     @app.get("/dashboard", include_in_schema=False)
     async def dashboard() -> FileResponse:
