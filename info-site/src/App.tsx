@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { motion } from "motion/react";
 import {
   Menu,
   X,
@@ -11,6 +12,8 @@ import {
   LayoutDashboard,
   Heart,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import heroImage from "./assets/woman4.png";
@@ -29,6 +32,12 @@ const NAV = [
   { label: "Who We Serve", id: "users" },
   { label: "Vision", id: "vision" },
   { label: "Team", id: "team" },
+];
+
+const STATS = [
+  { end: 362, suffix: "",  unit: "deaths per 100k",  label: "Kenya maternal mortality ratio" },
+  { end: 45,  suffix: "%", unit: "of births",         label: "have no skilled attendant" },
+  { end: 70,  suffix: "%", unit: "of Kenyans",        label: "use mobile phones" },
 ];
 
 const PROBLEMS = [
@@ -86,6 +95,33 @@ const FEATURES = [
   },
 ];
 
+const CORE_VALUES = [
+  {
+    emoji: "🤝",
+    title: "Empathy First",
+    body: "We design every feature with the emotional reality of our users at the centre — their fears, their dignity, and their strength guide every product decision we make.",
+    accent: "#ec4899",
+    bg: "#fdf2f8",
+    border: "#fce7f3",
+  },
+  {
+    emoji: "📡",
+    title: "Radical Access",
+    body: "If a solution cannot reach a mother in Turkana County on a 2G connection, it is not a solution. We build for the last mile first and let everything else follow.",
+    accent: "#1d4ed8",
+    bg: "#eff6ff",
+    border: "#bfdbfe",
+  },
+  {
+    emoji: "🔬",
+    title: "Evidence-Based Care",
+    body: "Every recommendation we deliver is grounded in WHO clinical guidelines and peer-reviewed community health research — we do not guess with mothers' lives.",
+    accent: "#0369a1",
+    bg: "#f0f9ff",
+    border: "#bae6fd",
+  },
+];
+
 const TEAM = [
   {
     name: "Christine Odegi",
@@ -130,6 +166,40 @@ const PARTNERS = [
   { name: "Amref Health Africa", href: "#" },
 ];
 
+/* ─── Hooks ─────────────────────────────────────────────────────────────── */
+
+function useCountUp(end: number, duration = 1800) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
+    let startTime: number | null = null;
+    const step = (ts: number) => {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * end));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [started, end, duration]);
+
+  return { count, ref };
+}
+
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
 
 function goto(id: string) {
@@ -157,6 +227,255 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
     >
       {children}
     </h2>
+  );
+}
+
+/* ── Animated stat counter ─────────────────────────────────────────────── */
+
+function StatCounter({ stat }: { stat: typeof STATS[number] }) {
+  const { count, ref } = useCountUp(stat.end);
+  return (
+    <div ref={ref} className="text-center px-6 py-10">
+      <p
+        className="text-5xl font-extrabold text-[#1d4ed8] leading-none tabular-nums"
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      >
+        {count}{stat.suffix}
+      </p>
+      <p className="text-[11px] text-[#ec4899] font-bold uppercase tracking-widest mt-2">
+        {stat.unit}
+      </p>
+      <p className="text-xs text-[#64748b] mt-1">{stat.label}</p>
+    </div>
+  );
+}
+
+/* ── Problem card with hover lift + shadow ─────────────────────────────── */
+
+function ProblemCard({ p }: { p: typeof PROBLEMS[number] }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="rounded-2xl border p-7 flex flex-col gap-5 cursor-default"
+      style={{
+        background: p.bg,
+        borderColor: hovered ? p.color + "55" : p.color + "22",
+        boxShadow: hovered
+          ? `0 20px 48px -8px ${p.shadow}, 0 6px 16px -4px ${p.shadow}`
+          : "0 1px 3px rgba(0,0,0,0.04)",
+        transform: hovered ? "translateY(-8px)" : "translateY(0)",
+        transition:
+          "transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease, border-color 0.2s ease",
+      }}
+    >
+      <span
+        className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+        style={{
+          background: hovered ? p.color : p.color + "15",
+          color: hovered ? "#fff" : p.color,
+          transition: "background 0.22s ease, color 0.22s ease",
+        }}
+      >
+        {p.icon}
+      </span>
+      <div>
+        <h3
+          className="text-lg font-bold mb-2"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0f172a" }}
+        >
+          {p.title}
+        </h3>
+        <p className="text-sm text-[#475569] leading-relaxed">{p.body}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Core values carousel ───────────────────────────────────────────────── */
+
+function ValuesCarousel() {
+  const total = CORE_VALUES.length;
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [visualIndex, setVisualIndex] = useState(total);
+  const [shouldAnimate, setShouldAnimate] = useState(true);
+  const active = ((visualIndex % total) + total) % total;
+  const gap = isDesktop ? 24 : 16;
+  const cardWidth = isDesktop
+    ? Math.max(0, (viewportWidth - gap * 2) / 3)
+    : viewportWidth;
+  const step = cardWidth + gap;
+  const trackX = viewportWidth / 2 - cardWidth / 2 - visualIndex * step;
+  const repeatedValues = [...CORE_VALUES, ...CORE_VALUES, ...CORE_VALUES];
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const updateMeasurements = () => {
+      setViewportWidth(viewport.clientWidth);
+      setIsDesktop(window.matchMedia("(min-width: 640px)").matches);
+    };
+    const observer = new ResizeObserver(updateMeasurements);
+
+    updateMeasurements();
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  const moveBy = (delta: number) => {
+    if (!shouldAnimate) return;
+    setVisualIndex((index) => index + delta);
+  };
+
+  const goPrev = () => moveBy(-1);
+  const goNext = () => moveBy(1);
+
+  const goTo = (index: number) => {
+    const forward = (index - active + total) % total;
+    if (forward === 0) return;
+    moveBy(forward <= total / 2 ? forward : forward - total);
+  };
+
+  const normalizeTrack = () => {
+    if (visualIndex >= total * 2) {
+      setShouldAnimate(false);
+      setVisualIndex((index) => index - total);
+      requestAnimationFrame(() => setShouldAnimate(true));
+    } else if (visualIndex < total) {
+      setShouldAnimate(false);
+      setVisualIndex((index) => index + total);
+      requestAnimationFrame(() => setShouldAnimate(true));
+    }
+  };
+
+  const Controls = () => (
+    <div className="flex items-center justify-center gap-5 mt-10">
+      <button
+        onClick={goPrev}
+        aria-label="Previous value"
+        className="w-10 h-10 rounded-full border border-[#bfdbfe] bg-white flex items-center justify-center text-[#1d4ed8] hover:bg-[#eff6ff] transition-colors"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+
+      <div className="flex items-center gap-2">
+        {CORE_VALUES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            aria-label={`Go to value ${i + 1}`}
+            aria-current={i === active ? "true" : undefined}
+            className="rounded-full transition-all duration-300"
+            style={{
+              width: i === active ? "24px" : "8px",
+              height: "8px",
+              background: i === active ? "#1d4ed8" : "#cbd5e1",
+            }}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={goNext}
+        aria-label="Next value"
+        className="w-10 h-10 rounded-full border border-[#bfdbfe] bg-white flex items-center justify-center text-[#1d4ed8] hover:bg-[#eff6ff] transition-colors"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="w-full">
+      <div
+        ref={viewportRef}
+        className="w-full overflow-hidden pt-5 pb-2 touch-pan-y"
+      >
+        <motion.div
+          className="flex items-end"
+          style={{ gap }}
+          animate={{ x: trackX }}
+          transition={
+            shouldAnimate
+              ? { type: "spring", stiffness: 260, damping: 30, mass: 0.85 }
+              : { duration: 0 }
+          }
+          onAnimationComplete={normalizeTrack}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.08}
+          onDragEnd={(_, info) => {
+            if (info.offset.x < -55 || info.velocity.x < -450) goNext();
+            if (info.offset.x > 55 || info.velocity.x > 450) goPrev();
+          }}
+        >
+          {repeatedValues.map((v, index) => {
+            const valueIndex = index % total;
+            const isActive = index === visualIndex;
+            const isVisible = isDesktop
+              ? Math.abs(index - visualIndex) <= 1
+              : isActive;
+
+          return (
+            <motion.button
+              key={`${v.title}-${index}`}
+              onClick={() => goTo(valueIndex)}
+              tabIndex={isVisible ? 0 : -1}
+              aria-hidden={!isVisible}
+              className="shrink-0 text-left rounded-2xl border outline-none p-6 focus-visible:ring-2 focus-visible:ring-[#1d4ed8] focus-visible:ring-offset-2"
+              animate={{
+                y: isDesktop && isActive ? -16 : 0,
+                scale: isDesktop && isActive ? 1.03 : 1,
+                opacity: isDesktop ? (isActive ? 1 : 0.55) : 1,
+              }}
+              transition={{ type: "spring", stiffness: 260, damping: 28 }}
+              style={{
+                width: cardWidth,
+                background: isActive ? v.bg : "#f8fafc",
+                borderColor: isActive ? v.border : "rgba(0,0,0,0.07)",
+                boxShadow: isActive
+                  ? `0 24px 52px -10px ${v.accent}28, 0 6px 16px -4px ${v.accent}18`
+                  : "0 1px 4px rgba(0,0,0,0.05)",
+                minHeight: isDesktop ? (isActive ? "270px" : "220px") : "270px",
+              }}
+            >
+              <span className="text-4xl mb-5 block">{v.emoji}</span>
+              <h3
+                className="font-extrabold mb-3"
+                style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  color: isActive ? v.accent : "#0f172a",
+                  fontSize: isActive ? "1.125rem" : "1rem",
+                  transition: "color 0.25s ease, font-size 0.25s ease",
+                }}
+              >
+                {v.title}
+              </h3>
+              <p
+                style={{
+                  color: isActive ? "#374151" : "#94a3b8",
+                  fontSize: isActive ? "0.875rem" : "0.8rem",
+                  lineHeight: "1.6",
+                  transition: "color 0.25s ease",
+                }}
+              >
+                {v.body}
+              </p>
+            </motion.button>
+          );
+        })}
+        </motion.div>
+      </div>
+
+      <p className="sr-only" aria-live="polite">
+        Showing {CORE_VALUES[active].title}, value {active + 1} of {total}
+      </p>
+      <Controls />
+    </div>
   );
 }
 
@@ -250,22 +569,13 @@ export default function App() {
       </header>
 
       {/* ══ Hero ════════════════════════════════════════════════════════════ */}
-      <section 
-        className="pt-32 pb-20 px-5 bg-cover bg-center relative"
+      <section
+        className="pt-58 pb-42 px-5 bg-cover bg-center relative"
         style={{ backgroundImage: `url(${heroImage})` }}
       >
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-white/60" />
-        
+        <div className="absolute inset-0 bg-white/80" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          {/* Eyebrow badge */}
-          {/* <span
-            className="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8 border"
-            style={{ color: "#1d4ed8", borderColor: "#bfdbfe", background: "#eff6ff" }}
-          >
-            Maternal Health · Kenya
-          </span> */}
-
+          
           <h1
             className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.08] mb-6 text-[#0f172a]"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
@@ -273,38 +583,25 @@ export default function App() {
             Bridging the Gap in{" "}
             <span className="text-[#1d4ed8]">Maternal Health.</span>
           </h1>
-
           <p className="text-lg md:text-xl text-[#475569] max-w-2xl mx-auto mb-10 leading-relaxed">
             An AI-powered companion providing stigma-free, localized, and continuous care for
             adolescent mothers and women in marginalized Kenyan communities.
           </p>
-
           <button
             className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-base font-bold text-white shadow-md hover:opacity-90 transition-opacity"
             style={{ background: "#ec4899" }}
           >
             Join the Pilot
           </button>
+        </div>
+      </section>
 
-          {/* Trust strip */}
-          <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
-            {[
-              { n: "362", unit: "deaths per 100k", label: "Kenya maternal mortality ratio" },
-              { n: "45%", unit: "of births", label: "have no skilled attendant" },
-              { n: "70%", unit: "of Kenyans", label: "use mobile phones" },
-            ].map((s) => (
-              <div key={s.label} className="text-center">
-                <p
-                  className="text-3xl font-extrabold text-[#1d4ed8] leading-none"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                >
-                  {s.n}
-                </p>
-                <p className="text-[11px] text-[#ec4899] font-semibold uppercase tracking-widest mt-0.5">{s.unit}</p>
-                <p className="text-xs text-[#64748b] mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
+      {/* ══ Stats — count-up on scroll ═══════════════════════════════════════ */}
+      <section className="bg-white border-b border-[#dbeafe]">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#dbeafe]">
+          {STATS.map((s) => (
+            <StatCounter key={s.label} stat={s} />
+          ))}
         </div>
       </section>
 
@@ -312,37 +609,15 @@ export default function App() {
       <section id="problem" className="py-20 px-5" style={{ background: "#f8fafc" }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <SectionLabel pink>The Crisis</SectionLabel>
+            <SectionLabel pink>The Problem</SectionLabel>
             <SectionHeading>The Maternal Health Crisis</SectionHeading>
             <p className="mt-4 text-[#475569] max-w-xl mx-auto text-base leading-relaxed">
-              Kenya's maternal mortality rate remains tragically high — driven by three systemic, addressable failures.
+              Kenya's maternal mortality rate remains tragically high — driven by three systemic,
+              addressable failures.
             </p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PROBLEMS.map((p) => (
-              <div
-                key={p.title}
-                className="rounded-2xl border p-7 flex flex-col gap-5"
-                style={{ background: p.bg, borderColor: p.color + "22" }}
-              >
-                <span
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ background: p.color + "15", color: p.color }}
-                >
-                  {p.icon}
-                </span>
-                <div>
-                  <h3
-                    className="text-lg font-bold mb-2"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0f172a" }}
-                  >
-                    {p.title}
-                  </h3>
-                  <p className="text-sm text-[#475569] leading-relaxed">{p.body}</p>
-                </div>
-              </div>
-            ))}
+            {PROBLEMS.map((p) => <ProblemCard key={p.title} p={p} />)}
           </div>
         </div>
       </section>
@@ -352,7 +627,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto">
           <div className="mb-12 max-w-2xl">
             <SectionLabel>The Solution</SectionLabel>
-            <SectionHeading>Our Solution: Continuous,&nbsp;Stigma-Free Support</SectionHeading>
+            <SectionHeading>Continuous,&nbsp;Stigma-Free Support</SectionHeading>
             <p className="mt-4 text-[#475569] text-base leading-relaxed">
               The Maternal Companion meets mothers where they are — on their phones, in their
               language, with care tailored to their community.
@@ -457,44 +732,41 @@ export default function App() {
         </div>
       </section>
 
-      {/* ══ Vision ══════════════════════════════════════════════════════════ */}
-      <section id="vision" className="py-20 px-5 bg-[#1d4ed8]">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#93c5fd] mb-4">
+      {/* ══ Vision — statement only ══════════════════════════════════════════ */}
+      <section id="vision" className="py-24 px-5 bg-[#1d4ed8]">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#93c5fd] mb-6">
             Our Vision
           </p>
+          <span
+            className="block text-[120px] leading-none text-white/10 select-none -mb-8"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
+            "
+          </span>
           <h2
-            className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-6"
+            className="text-3xl md:text-5xl font-extrabold text-white leading-[1.15] mb-8"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
-            Our Vision
-          </h2>
-          <p className="text-[#bfdbfe] text-lg leading-relaxed max-w-2xl mx-auto mb-12">
-            To provide continuous, culturally adapted maternal care from conception to postpartum,
+            To provide continuous, culturally adapted maternal care from conception to postpartum —
             acting as a digital bridge between marginalized mothers and their health networks.
-          </p>
+          </h2>
+          <div className="w-16 h-1 bg-[#ec4899] rounded-full mx-auto" />
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { icon: "🌍", heading: "Pan-African Reach", body: "Starting in Kenya, scaling to ASAL and East African markets by 2027." },
-              { icon: "🤝", heading: "Health System Integration", body: "Embedded within national Community Health Strategy — not parallel to it." },
-              { icon: "📊", heading: "Evidence-Driven", body: "Every intervention tracked against WHO maternal health indicators." },
-            ].map((v) => (
-              <div
-                key={v.heading}
-                className="rounded-2xl bg-white/10 border border-white/20 p-6 text-left"
-              >
-                <span className="text-3xl mb-4 block">{v.icon}</span>
-                <p
-                  className="font-bold text-white mb-2"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                >
-                  {v.heading}
-                </p>
-                <p className="text-sm text-[#bfdbfe] leading-relaxed">{v.body}</p>
-              </div>
-            ))}
+      {/* ══ Core Values carousel ════════════════════════════════════════════ */}
+      <section className="py-20 px-5 bg-white overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <SectionLabel>What We Stand For</SectionLabel>
+            <SectionHeading>Our Core Values</SectionHeading>
+            <p className="mt-4 text-[#475569] max-w-lg mx-auto text-sm leading-relaxed">
+              Three principles that shape every line of code, every design decision, and every
+              community partnership we make.
+            </p>
           </div>
+          <ValuesCarousel />
         </div>
       </section>
 
